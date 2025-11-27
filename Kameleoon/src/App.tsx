@@ -1,35 +1,29 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import './App.css';
+import Chart from "./components/Chart";
+import ControlPanel from "./components/ControlPanel";
+import { AppProvider } from "./providers/AppProvider.tsx";
+import { useEffect, useState } from "react";
+import type ChartInterface from "./types/ChartTypes.ts";
 
 function App() {
-  const [count, setCount] = useState(0)
+    const [data, setData] = useState<ChartInterface>(null);
 
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    useEffect(() => {
+        fetch("/data.json")
+            .then(res => res.json())
+            .then(json => setData(json))
+            .catch(err => console.error(err));
+    }, []);
+
+    return (
+        <AppProvider>
+            { data && <>
+                        <ControlPanel data={data}/>
+                        <Chart data={data}/>
+                    </>
+            }
+        </AppProvider>
+    )
 }
 
 export default App
