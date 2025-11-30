@@ -147,11 +147,11 @@ const Chart = ({ data = [], width = 1300, height = 330 }: ChartProps) => {
                                 { y.ticks().map((d, i) => (<line key={i} x1={marginLeft} x2={width - marginRight} y1={0.5 + y(d)} y2={0.5 + y(d)} stroke={'#E1DFE7'} />)) }
                             </g>
                         </g>
-                        { parsed.map((p, index) =>
+                        { parsed?.map((p, index) =>
                             <g key={index}>
                                 <path
                                     fill="none"
-                                    stroke={appState?.variation.value !== 1 ? variationsColors[appState?.variation.value] : Object.values(variationsColors)[index]}
+                                    stroke="transparent"
                                     strokeWidth="2"
                                     d={line(p?.filter(d => !isNaN(d.value)))}
                                 />
@@ -162,18 +162,26 @@ const Chart = ({ data = [], width = 1300, height = 330 }: ChartProps) => {
                                     d={line(p)}
                                 />
                                 { appState?.lineStyle.value === 2 &&
-                                    <path
-                                        fill={appState.variation.value !== 1 ? variationsColors[appState.variation.value] : Object.values(variationsColors)[index]}
-                                        fillOpacity="0.2"
-                                        stroke="none"
-                                        d={area(p?.filter(d => !isNaN(d.value)))}
-                                    />
+                                    <>
+                                        <path
+                                            fill="transparent"
+                                            fillOpacity="0.2"
+                                            stroke="none"
+                                            d={area(p?.filter(d => !isNaN(d.value)))}
+                                        />
+                                        <path
+                                            fill={appState.variation.value !== 1 ? variationsColors[appState.variation.value] : Object.values(variationsColors)[index]}
+                                            fillOpacity="0.2"
+                                            stroke="none"
+                                            d={area(p)}
+                                        />
+                                    </>
                                 }
                             </g>
                         )}
                     </>
                 }
-                { !parsed?.length && <text textAnchor="middle" fill="#918F9A">No data</text> }
+                { !parsed?.flat().length && <text textAnchor="middle" fill="#918F9A">No data</text> }
             </svg>
             <div
                 ref={tooltipRef}
