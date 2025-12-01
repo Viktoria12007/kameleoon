@@ -2,10 +2,14 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 2rem;
+    margin-bottom: 11px;
 }
 
 .controlPanel__col {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 2rem;
 }
