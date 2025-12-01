@@ -1,7 +1,8 @@
 import * as d3 from "d3";
 import type ChartInterface from "../../types/ChartTypes.ts";
-import { useContext, useEffect, useRef } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { AppContext } from "../../contexts/AppContext.ts";
+import styles from "./styles.module.css";
 
 interface ChartProps {
     data?: ChartInterface,
@@ -12,26 +13,42 @@ interface ChartProps {
 const Chart = ({ data = [], width = 1300, height = 330 }: ChartProps) => {
     const { appState, setAppState } = useContext(AppContext);
 
+    const [widthContainer, setWidthContainer] = useState(width);
+
+    const gx = useRef(null);
+    const gy = useRef(null);
+    // const svgRef = useRef<SVGElement | null>(null);
+    const tooltipRef = useRef<HTMLDivElement | null>(null);
+    const containerRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        function render() {
+            setWidthContainer(containerRef.current?.getBoundingClientRect().width);
+        }
+        window.addEventListener('resize', render);
+        render();
+        return () => window.removeEventListener('resize', render);
+    }, []);
+
     const marginBottom = 30;
     const marginLeft = 40;
     const marginRight = 20;
     const marginTop = 20;
-    const innerW = width - marginLeft - marginRight;
+    const innerW = widthContainer - marginLeft - marginRight;
     const innerH = height - marginTop - marginBottom;
     const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const getWeekDay = (date: Date) => weekDays[date.getDay() === 0 ? 6 : date.getDay() - 1];
 
-    const gx = useRef(null);
-    const gy = useRef(null);
-    const tooltipRef = useRef<HTMLDivElement | null>(null);
-    const containerRef = useRef<HTMLDivElement | null>(null);
-
     let parsed: [Array<{ date: Date, value: number }> | undefined] | undefined;
     let x;
     let y;
-    const colors = ["#46464F", "#4142EF", "#FF8346", "#35BDAD", "#FFB958", "#DF57BC"];
+    const light = ["#46464F", "#4142EF", "#FF8346", "#35BDAD"];
+    const dark = ["#C7C5D0", "#A1A3FF", "#FF8346", "#35BDAD"];
     const variationsColors = data?.variations.reduce((acc, item, index) => {
-        acc['id' in item ? item.id : 0] = colors[index];
+        acc['id' in item ? item.id : 0] = {
+            light: light[index],
+            dark: dark[index],
+        };
         return acc;
     }, {});
 
@@ -48,10 +65,10 @@ const Chart = ({ data = [], width = 1300, height = 330 }: ChartProps) => {
     }
 
     if (appState?.timePeriod.value === 0) {
-        x = d3.scaleTime().domain(d3.extent(parsed?.flat(), d => d.date)).range([marginLeft, width - marginRight]);
+        x = d3.scaleTime().domain(d3.extent(parsed?.flat(), d => d.date)).range([marginLeft, widthContainer - marginRight]);
     } else {
         const getWeekIndex = (date: Date) => (date.getDay() + 6) % 7;
-        x = d3.scaleLinear().domain([0, 6]).range([marginLeft, width - marginRight]);
+        x = d3.scaleLinear().domain([0, 6]).range([marginLeft, widthContainer - marginRight]);
     }
 
     y = d3.scaleLinear().domain(d3.extent(parsed?.flat(), d => d.value)).range([height - marginBottom, marginTop]);
@@ -73,12 +90,10 @@ const Chart = ({ data = [], width = 1300, height = 330 }: ChartProps) => {
             axis = d3.select(gx.current).call(d3.axisBottom(x).ticks(7).tickFormat(i => ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][Number(i)]));
         }
         axis.call(g => g.selectAll(".tick line").remove())
-        .call(g => g.selectAll(".tick text").attr("fill", "#918F9A"))
         .call(g => g.selectAll(".domain").remove())
     }, [gx, x, appState?.timePeriod.value]);
     useEffect(() => void d3.select(gy.current).call(d3.axisLeft(y).ticks(4).tickFormat((domainValue) => `${domainValue}%`))
             .call(g => g.selectAll(".tick line").remove())
-            .call(g => g.selectAll(".tick text").attr("fill", "#918F9A"))
             .call(g => g.selectAll(".domain").remove()),
         [gy, y]);
 
@@ -107,8 +122,8 @@ const Chart = ({ data = [], width = 1300, height = 330 }: ChartProps) => {
         const x0 = x.invert(mx);
         // find nearest point
         const bisect = d3.bisector(d => d.date).left;
-        const idx = Math.min(parsed?.flat().length - 1, Math.max(0, bisect(parsed as Array<{ date: Date, value: number }>, x0)));
-        const d0 = (parsed as Array<{ date: Date, value: number }>)[idx];
+        const idx = Math.min(parsed?.flat().length - 1, Math.max(0, bisect((parsed as Array<{ date: Date, value: number }>).flat(), x0)));
+        const d0 = (parsed as Array<{ date: Date, value: number }>).flat()[idx];
         // position focus
         // focus.attr('transform', `translate(${x(d0.date)},${y(d0.value)})`)
         if (tooltipRef.current) {
@@ -125,27 +140,40 @@ const Chart = ({ data = [], width = 1300, height = 330 }: ChartProps) => {
     }
 
     return (
-        <div ref={containerRef} style={{ position: 'relative' }}>
-            <svg width={width} height={height}>
-                { parsed?.flat().length &&
+        <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
+            <svg id="chart" style={{ width: '100%', height }}>
+                { parsed?.length && appState &&
                     <>
                         <rect
-                            width={width}
+                            width={widthContainer}
                             height={height}
                             fill="transparent"
                             onMouseOver={handleMouseOver}
                             onMouseOut={handleMouseOut}
                             onMouseMove={handleMouseMove}
                         />
-                        <g ref={gx} transform={`translate(0,${height - marginBottom})`} />
-                        <g ref={gy} transform={`translate(${marginLeft},0)`} />
+                        <g ref={gx} transform={`translate(0,${height - marginBottom})`} className={styles.axisText} />
+                        <g ref={gy} transform={`translate(${marginLeft},0)`} className={styles.axisText} />
                         <g>
-                            <g>
-                                { x.ticks().map((d, i) => (<line key={i} x1={0.5 + x(d)} x2={0.5 + x(d)} y1={marginTop} y2={height - marginBottom} stroke={'#E1DFE7'} strokeDasharray={'6'} />)) }
-                            </g>
-                            <g>
-                                { y.ticks().map((d, i) => (<line key={i} x1={marginLeft} x2={width - marginRight} y1={0.5 + y(d)} y2={0.5 + y(d)} stroke={'#E1DFE7'} />)) }
-                            </g>
+                            { x.ticks().map((d, i) =>
+                                (<line
+                                    key={i}
+                                    x1={0.5 + x(d)}
+                                    x2={0.5 + x(d)}
+                                    y1={marginTop}
+                                    y2={height - marginBottom}
+                                    className={styles.axisLines}
+                                    strokeDasharray={'6'}
+                                />)) }
+                            { y.ticks().map((d, i) =>
+                                (<line
+                                    key={i}
+                                    x1={marginLeft}
+                                    x2={widthContainer - marginRight}
+                                    y1={0.5 + y(d)}
+                                    y2={0.5 + y(d)}
+                                    className={styles.axisLines}
+                                />)) }
                         </g>
                         { parsed?.map((p, index) =>
                             <g key={index}>
@@ -157,11 +185,13 @@ const Chart = ({ data = [], width = 1300, height = 330 }: ChartProps) => {
                                 />
                                 <path
                                     fill="none"
-                                    stroke={appState?.variation.value !== 1 ? variationsColors[appState?.variation.value] : Object.values(variationsColors)[index]}
+                                    stroke={appState.variation.value !== 1 ?
+                                        variationsColors[appState.variation.value][appState.theme]
+                                        : Object.values(variationsColors)[index][appState.theme]}
                                     strokeWidth="2"
                                     d={line(p)}
                                 />
-                                { appState?.lineStyle.value === 2 &&
+                                { appState.lineStyle.value === 2 &&
                                     <>
                                         <path
                                             fill="transparent"
@@ -170,7 +200,9 @@ const Chart = ({ data = [], width = 1300, height = 330 }: ChartProps) => {
                                             d={area(p?.filter(d => !isNaN(d.value)))}
                                         />
                                         <path
-                                            fill={appState.variation.value !== 1 ? variationsColors[appState.variation.value] : Object.values(variationsColors)[index]}
+                                            fill={appState.variation.value !== 1 ?
+                                                variationsColors[appState.variation.value][appState.theme]
+                                                : Object.values(variationsColors)[index][appState.theme]}
                                             fillOpacity="0.2"
                                             stroke="none"
                                             d={area(p)}
@@ -181,7 +213,7 @@ const Chart = ({ data = [], width = 1300, height = 330 }: ChartProps) => {
                         )}
                     </>
                 }
-                { !parsed?.flat().length && <text textAnchor="middle" fill="#918F9A">No data</text> }
+                { !parsed?.length && <text textAnchor="middle" fill="#918F9A">No data</text> }
             </svg>
             <div
                 ref={tooltipRef}
