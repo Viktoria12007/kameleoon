@@ -7,3 +7,57 @@
 .axisLines {
     stroke: var(--color-axis-lines);
 }
+
+.cursorTooltip {
+    stroke: var(--color-cursor);
+}
+
+.tooltip {
+    display: none;
+    min-width: 228px;
+    max-height: 150px;
+    overflow-y: auto;
+    position: absolute;
+    padding: 12px 16px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--border-radius);
+    pointer-events: none;
+    background-color: var(--color-bg);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+.dateTooltip {
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.listVariations {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.itemVariations {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+}
+
+.leftColVariation {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.iconVariation {
+    width: 10px;
+    height: 10px;
+    border-radius: 100%;
+}
+
+
