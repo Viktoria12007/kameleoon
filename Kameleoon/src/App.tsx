@@ -1,4 +1,3 @@
-import './App.css';
 import Chart from "./components/Chart";
 import ControlPanel from "./components/ControlPanel";
 import { AppProvider } from "./providers/AppProvider.tsx";
